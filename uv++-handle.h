@@ -38,11 +38,13 @@ namespace Uv
             return m_pWeakRef;
         }
 
-        void Ref()
+        Handle * Ref()
         {
             assert(0 < m_refCount);
 
             m_refCount ++;
+
+            return this;
         }
 
         void Unref();

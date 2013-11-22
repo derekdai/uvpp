@@ -5,14 +5,6 @@ namespace Uv
     class Tcp: public Stream
     {
     public:
-        class InConnectHandler
-        {
-        public:
-            virtual void OnConnect(/* [in] */ Tcp *source,
-                                   /* [in] */ Tcp *conn,
-                                   /* [in] */ int status) = 0;
-        };
-
         class OutConnectHandler
         {
         public:
@@ -42,6 +34,13 @@ namespace Uv
             assert(Address::Type_Unknown != addr.GetType());
 
             return uv_tcp_bind(*this, addr);
+        }
+
+        virtual int Accept(/* [out] */ Stream **conn);
+
+        Tcp * Ref()
+        {
+            return (Tcp *) Handle::Ref();
         }
 
     protected:
