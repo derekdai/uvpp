@@ -51,8 +51,15 @@ namespace Uv
     private:
         Loop(): m_pPeer(uv_loop_new())
         {
-
+            m_pPeer->data = this;
         }
+
+        static Loop & FromPeer(uv_loop_t *peer)
+        {
+            return * (Loop *) peer->data;
+        }
+
+        friend class Handle;
 
     private:
         static __thread Loop * s_pLoop;

@@ -30,9 +30,7 @@ namespace Uv
         uv_close(m_pPeer, OnClose);
 
         // wait for pendding close request
-        Loop::Get().Run(Loop::Once);
-
-        cout << "Handle::Close()" << endl;
+        GetLoop().Run(Loop::Once);
     }
 
     void Handle::OnClose(uv_handle_t *peer)
@@ -44,8 +42,6 @@ namespace Uv
 
         free(self->m_pPeer);
         self->m_pPeer = NULL;
-
-        cout << "Handle::OnClose()" << endl;
     }
 
     void Handle::Unref()
@@ -53,7 +49,6 @@ namespace Uv
         assert(0 < m_refCount);
 
         m_refCount --;
-        cout << "Refcount: " << m_refCount << endl;
         if(m_refCount) {
             return;
         }

@@ -55,6 +55,12 @@ namespace Uv
             }
         }
 
+        Loop & GetLoop()
+        {
+            // TODO Handle should not access field of loop directly
+            return Loop::FromPeer(m_pPeer->loop);
+        }
+
     protected:
         Handle(): m_pPeer(NULL),
                   m_pWeakRef(NULL),
