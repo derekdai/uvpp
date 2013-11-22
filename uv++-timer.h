@@ -1,6 +1,6 @@
 namespace Uv
 {
-    class Timer: public GenericHandle<uv_timer_t>
+    class Timer: public Handle
     {
     public:
         class TimeoutHandler
@@ -28,15 +28,37 @@ namespace Uv
 
         int Stop();
 
-    protected:
+        bool IsStarted()
+        {
+            return NULL != m_pHandler;
+        }
+
         virtual ~Timer()
         {
             cout << "~Timer()" << endl;
         }
 
-        virtual int DoOpen(uv_handle_t *peer)
+    protected:
+        virtual int DoOpen(Loop &loop, uv_handle_t *peer)
         {
-            return uv_timer_init(Loop::Get(), (uv_timer_t *) peer);
+            return uv_timer_init(loop, (uv_timer_t *) peer);
+        }
+
+        virtual void DoClose()
+        {
+            if(IsStarted()) {
+                Stop();
+            }
+        }
+
+        virtual size_t GetPeerSize() const
+        {
+            return sizeof(uv_timer_t);
+        }
+
+        operator uv_timer_t *()
+        {
+            return (uv_timer_t *) GetPeer();
         }
 
         static void OnTimeout(uv_timer_t *peer, int status);

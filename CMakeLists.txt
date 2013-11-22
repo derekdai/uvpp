@@ -8,6 +8,7 @@ add_library(uv++ SHARED
             uv++-loop
             uv++-handle
             uv++-timer
+            uv++-address
 )
 target_link_libraries(uv++ uv)
 
