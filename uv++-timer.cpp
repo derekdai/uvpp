@@ -11,7 +11,7 @@ namespace Uv
         Ref();
 
         m_pHandler = &handler;
-        return uv_timer_start(GetPeer(),
+        return uv_timer_start(*this,
                               OnTimeout,
                               delay,
                               interval);
@@ -21,7 +21,7 @@ namespace Uv
     {
         assert(m_pHandler);
 
-        int result = uv_timer_stop(GetPeer());
+        int result = uv_timer_stop(*this);
         m_pHandler = NULL;
 
         Unref();

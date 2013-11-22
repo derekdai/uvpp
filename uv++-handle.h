@@ -4,6 +4,9 @@
 #include <cassert>
 #include <cstdlib>
 
+#include <iostream>
+using namespace std;
+
 namespace Uv
 {
     class Handle
@@ -12,7 +15,7 @@ namespace Uv
         class WeakRef
         {
         public:
-            virtual void OnDestroy(Handle *handle) = 0;
+            virtual void OnClose(Handle *handle) = 0;
         };
 
     public:
@@ -70,6 +73,7 @@ namespace Uv
             assert(0 < m_refCount);
 
             m_refCount --;
+            cout << "Refcount: " << m_refCount << endl;
             if(m_refCount) {
                 return;
             }
@@ -84,6 +88,7 @@ namespace Uv
 
         virtual ~Handle()
         {
+            cout << "~Handle()" << endl;
             if(! IsOpened()) {
                 Close();
             }
@@ -91,21 +96,19 @@ namespace Uv
 
         virtual int DoOpen(uv_handle_t *peer) = 0;
 
-        static void OnClose(uv_handle_t *peer)
+        static void OnClose(uv_handle_t *peer);
+
+        uv_handle_t * GetPeer()
         {
-            Handle *self = (Handle *) peer->data;
-            if(self->m_pWeakRef) {
-                self->m_pWeakRef->OnDestroy(self);
-            }
+            return m_pPeer;
         }
 
     private:
         virtual size_t GetPeerSize() = 0;
 
-    protected:
+    private:
         uv_handle_t *m_pPeer;
 
-    private:
         WeakRef *m_pWeakRef;
 
         int m_refCount;
@@ -120,9 +123,9 @@ namespace Uv
             return sizeof(T);
         }
 
-        T * GetPeer()
+        operator T *()
         {
-            return (T *) m_pPeer;
+            return (T *) GetPeer();
         }
     };
 }

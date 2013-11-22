@@ -29,6 +29,11 @@ namespace Uv
         int Stop();
 
     protected:
+        virtual ~Timer()
+        {
+            cout << "~Timer()" << endl;
+        }
+
         virtual int DoOpen(uv_handle_t *peer)
         {
             return uv_timer_init(Loop::Get(), (uv_timer_t *) peer);
