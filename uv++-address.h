@@ -64,4 +64,38 @@ namespace Uv
 
         UAddress m_peer;
     };
+
+    class Ip4Address: public Address
+    {
+    public:
+        Ip4Address(/* [in] */ const char *ip,
+                   /* [in] */ int port): Address(Address::Type_Ip4,
+                                                 ip,
+                                                 port)
+        {
+        }
+
+        int Set(/* [in] */ const char *ip,
+                /* [in] */ int port)
+        {
+            return SetIp4(ip, port);
+        }
+    };
+
+    class Ip6Address: public Address
+    {
+    public:
+        Ip6Address(/* [in] */ const char *ip,
+                   /* [in] */ int port): Address(Address::Type_Ip6,
+                                                 ip,
+                                                 port)
+        {
+        }
+
+        int Set(/* [in] */ const char *ip,
+                /* [in] */ int port)
+        {
+            return SetIp6(ip, port);
+        }
+    };
 }

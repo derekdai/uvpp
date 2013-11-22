@@ -76,14 +76,14 @@ int main()
     Tcp *server = new Tcp();
     Server serverEventHandler;
     assert(! server->Open());
-    assert(! server->Bind(Address::Type_Ip4, "0.0.0.0", 1234));
+    assert(! server->Bind(Ip4Address("0.0.0.0", 1234)));
     assert(! server->Listen(serverEventHandler));
     server->Unref();
 
     Tcp client;
     Client clientEventHandler;
     assert(! client.Open());
-    assert(! client.Connect(Address::Type_Ip4, "127.0.0.1", 1234, &clientEventHandler));
+    assert(! client.Connect(Ip4Address("127.0.0.1", 1234), &clientEventHandler));
 
     Loop::Run();
 
