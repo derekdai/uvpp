@@ -13,8 +13,9 @@ namespace Uv
         };
 
     public:
-        Tcp()
+        Tcp(): m_pOutConnectHandler(NULL)
         {
+            m_connectReq.data = this;
         }
 
         virtual ~Tcp()
@@ -31,6 +32,7 @@ namespace Uv
 
         int Bind(/* [in] */ const Address &addr)
         {
+            assert(IsOpened());
             assert(Address::Type_Unknown != addr.GetType());
 
             return uv_tcp_bind(*this, addr);
@@ -42,6 +44,17 @@ namespace Uv
         {
             return (Tcp *) Handle::Ref();
         }
+
+        int Connect(/* [in] */ Address::Type addrType,
+                    /* [in] */ const char *ip,
+                    /* [in] */ int port,
+                    /* [in] */ OutConnectHandler *handler = NULL)
+        {
+            return Connect(Address(addrType, ip, port), handler);
+        }
+
+        int Connect(/* [in] */ const Address &addr,
+                    /* [in] */ OutConnectHandler *handler);
 
     protected:
         virtual size_t GetPeerSize() const
@@ -60,10 +73,10 @@ namespace Uv
         }
 
     private:
-        //void OnConnect(uv_stream_t *peer, )
-        //{
-        //}
+        static void OnConnected(uv_connect_t *req, int status);
 
     private:
+        uv_connect_t m_connectReq;
+        OutConnectHandler *m_pOutConnectHandler;
     };
 }

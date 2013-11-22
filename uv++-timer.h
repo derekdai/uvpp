@@ -38,6 +38,11 @@ namespace Uv
             cout << "~Timer()" << endl;
         }
 
+        Timer * Ref()
+        {
+            return (Timer *) Handle::Ref();
+        }
+
     protected:
         virtual int DoOpen(Loop &loop, uv_handle_t *peer)
         {

@@ -13,14 +13,7 @@ namespace Uv
 
     public:
         int Listen(/* [in] */ InConnectHandler &handler,
-                   /* [in] */ int backlog = 10)
-        {
-            assert(! m_pInConnectHandler);
-
-            m_pInConnectHandler = &handler;
-
-            return uv_listen(*this, backlog, OnConnect);
-        }
+                   /* [in] */ int backlog = 10);
 
         virtual int Accept(/* [out] */ Stream **conn) = 0;
 
@@ -37,6 +30,14 @@ namespace Uv
     protected:
         Stream(): m_pInConnectHandler(NULL)
         {
+        }
+
+        void DoClose()
+        {
+            if(m_pInConnectHandler) {
+                m_pInConnectHandler = NULL;
+                Unref();
+            }
         }
 
     private:

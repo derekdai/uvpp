@@ -8,13 +8,16 @@ namespace Uv
     {
         assert(! m_pHandler);
 
-        Ref();
+        int result = uv_timer_start(*this,
+                                    OnTimeout,
+                                    delay,
+                                    interval);
+        if(! result) {
+            m_pHandler = &handler;
+            Ref();
+        }
 
-        m_pHandler = &handler;
-        return uv_timer_start(*this,
-                              OnTimeout,
-                              delay,
-                              interval);
+        return result;
     }
 
     int Timer::Stop()
@@ -33,6 +36,7 @@ namespace Uv
     {
         Timer *self = (Timer *) peer->data;
         self->m_pHandler->OnTimeout(self, status);
+
         if(status) {
             self->Stop();
             self->Close();

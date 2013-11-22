@@ -30,14 +30,14 @@ public:
     }
 };
 
-class ServerEventHandler: public Stream::InConnectHandler
+class Server: public Stream::InConnectHandler
 {
 public:
-    ServerEventHandler(): conn(NULL)
+    Server(): conn(NULL)
     {
     }
 
-    ~ServerEventHandler()
+    ~Server()
     {
         delete conn;
     }
@@ -54,6 +54,15 @@ private:
     Stream *conn;
 };
 
+class Client: public Tcp::OutConnectHandler
+{
+public:
+    void OnConnected(Tcp *source, int status)
+    {
+        cout << "Client::Connected" << endl;
+    }
+};
+
 int main()
 {
     Timer *timer = new Timer();
@@ -65,14 +74,16 @@ int main()
     timer->Unref();
 
     Tcp *server = new Tcp();
-    ServerEventHandler serverEventHandler;
+    Server serverEventHandler;
     assert(! server->Open());
+    assert(! server->Bind(Address::Type_Ip4, "0.0.0.0", 1234));
     assert(! server->Listen(serverEventHandler));
-    delete server;
+    server->Unref();
 
-    server = new Tcp();
-    assert(! server->Open());
-    delete server;
+    Tcp client;
+    Client clientEventHandler;
+    assert(! client.Open());
+    assert(! client.Connect(Address::Type_Ip4, "127.0.0.1", 1234, &clientEventHandler));
 
     Loop::Run();
 
