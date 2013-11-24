@@ -2,33 +2,40 @@
 
 namespace Uv
 {
+    Tcp * Tcp::New(Loop &loop)
+    {
+        Tcp *self = new Tcp();
+        if(! self) {
+            return NULL;
+        }
+
+        if(! self->Open(loop)) {
+            return self;
+        }
+
+        delete self;
+
+        return NULL;
+    }
+
     int Tcp::Accept(/* [out] */ Stream **conn)
     {
         assert(IsOpened());
         assert(conn && ! * conn);
 
-        Tcp *newConn = new Tcp();
+        Tcp *newConn = New(GetLoop());
         if(! newConn) {
-            return ENOMEM;
+            return UV_ENOMEM;
         }
 
-        int result = newConn->Open();
-        if(result) {
-            goto deleteNewConn;
+        int result = uv_accept(*this, *newConn);
+        if(! result) {
+            *conn = newConn;
+        }
+        else {
+            newConn->Unref();
         }
 
-        result = uv_accept(*this, *newConn);
-        if(result) {
-            goto deleteNewConn;
-        }
-
-        *conn = newConn;
-
-        goto end;
-
-    deleteNewConn:
-        delete newConn;
-    end:
         return result;
     }
 
@@ -36,15 +43,14 @@ namespace Uv
                      /* [in] */ OutConnectHandler *handler)
     {
         assert(IsOpened());
-        assert(! m_pOutConnectHandler);
 
         int result = uv_tcp_connect(&m_connectReq,
                                     *this,
                                     addr,
                                     OnConnected);
         if(! result) {
-            m_pOutConnectHandler = handler;
             Ref();
+            m_pOutConnectHandler = handler;
         }
 
         return result;
@@ -62,5 +68,26 @@ namespace Uv
         }
 
         self->Unref();
+    }
+    Tcp::~Tcp()
+    {
+        cout << "~Tcp()" << endl;
+    }
+
+    size_t Tcp::GetPeerSize() const
+    {
+        return sizeof(uv_tcp_t);
+    }
+
+    int Tcp::DoOpen(/* [in] */ Loop &loop, /* [in] */ uv_handle_t *peer)
+    {
+        return uv_tcp_init(loop, (uv_tcp_t *) peer);
+    }
+
+    void Tcp::DoClose()
+    {
+        cout << "Tcp::DoClose()" << endl;
+
+        Stream::DoClose();
     }
 }

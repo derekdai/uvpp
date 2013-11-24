@@ -7,21 +7,14 @@ namespace Uv
     public:
         class OutConnectHandler
         {
-        public:
+        private:
             virtual void OnConnected(/* [in] */ Tcp *source,
                                      /* [in] */ int status) = 0;
+            friend class Tcp;
         };
 
     public:
-        Tcp(): m_pOutConnectHandler(NULL)
-        {
-            m_connectReq.data = this;
-        }
-
-        virtual ~Tcp()
-        {
-            cout << "~Tcp()" << endl;
-        }
+        static Tcp * New(Loop &Loop = Loop::Get());
 
         int Bind(/* [in] */ Address::Type type,
                  /* [in] */ const char *ip,
@@ -57,15 +50,19 @@ namespace Uv
                     /* [in] */ OutConnectHandler *handler);
 
     protected:
-        virtual size_t GetPeerSize() const
+        Tcp(): m_pOutConnectHandler(NULL)
         {
-            return sizeof(uv_tcp_t);
+            m_connectReq.data = this;
         }
 
-        virtual int DoOpen(/* [in] */ Loop &loop, /* [in] */ uv_handle_t *peer)
-        {
-            return uv_tcp_init(loop, (uv_tcp_t *) peer);
-        }
+        virtual ~Tcp();
+
+        virtual size_t GetPeerSize() const;
+
+        virtual int DoOpen(/* [in] */ Loop &loop,
+                           /* [in] */ uv_handle_t *peer);
+
+        virtual void DoClose();
 
         operator uv_tcp_t *()
         {

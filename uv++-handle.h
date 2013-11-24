@@ -14,18 +14,35 @@ namespace Uv
     public:
         class WeakRef
         {
-        public:
+        private:
             virtual void OnClose(Handle *handle) = 0;
+
+            friend class Handle;
+        };
+
+    protected:
+        enum Flags
+        {
+            Flags_None,
+            Flags_Closing     = 1 << 0,
         };
 
     public:
-        int Open(/* [in] */ Loop &loop = Loop::Get());
-
         void Close();
 
         bool IsOpened()
         {
-            return NULL != m_pPeer;
+            return !IsClosing() && !IsClosed();
+        }
+
+        bool IsClosing()
+        {
+            return !!(Flags_Closing & m_flags);
+        }
+
+        bool IsClosed()
+        {
+            return !m_pPeer && !IsClosing();
         }
 
         void SetWeakRef(WeakRef *weakref)
@@ -49,14 +66,6 @@ namespace Uv
 
         void Unref();
 
-        virtual ~Handle()
-        {
-            cout << "~Handle(): " << IsOpened() << endl;
-            if(IsOpened()) {
-                Close();
-            }
-        }
-
         Loop & GetLoop()
         {
             // TODO Handle should not access field of loop directly
@@ -66,24 +75,45 @@ namespace Uv
     protected:
         Handle(): m_pPeer(NULL),
                   m_pWeakRef(NULL),
-                  m_refCount(1)
+                  m_refCount(1),
+                  m_flags(Flags_None)
         {
+            count ++;
         }
+
+        virtual ~Handle()
+        {
+            count --;
+
+            cout << "~Handle(): " << (IsOpened() ? "true" : "false") << endl;
+            assert(! IsOpened());
+        }
+
+        int Open(/* [in] */ Loop &loop);
 
         virtual int DoOpen(Loop &loop, uv_handle_t *peer) = 0;
 
-        virtual void DoClose()
-        {
-        }
+        virtual void DoClose() = 0;
 
-        static void OnClose(uv_handle_t *peer);
+        virtual size_t GetPeerSize() const = 0;
 
         uv_handle_t * GetPeer()
         {
             return m_pPeer;
         }
 
-        virtual size_t GetPeerSize() const = 0;
+        static void OnClose(uv_handle_t *peer);
+
+    private:
+        void SetFlags(Flags flags)
+        {
+            m_flags |= flags;
+        }
+
+        void ClearFlags(Flags flags)
+        {
+            m_flags &= ~flags;
+        }
 
     private:
         uv_handle_t *m_pPeer;
@@ -91,6 +121,11 @@ namespace Uv
         WeakRef *m_pWeakRef;
 
         int m_refCount;
+
+        unsigned int m_flags;
+
+    public:
+        static int count;
     };
 }
 

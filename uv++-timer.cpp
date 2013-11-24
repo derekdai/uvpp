@@ -2,6 +2,22 @@
 
 namespace Uv
 {
+    Timer * Timer::New(/* [in] */ Loop &loop)
+    {
+        Timer *self = new Timer();
+        if(! self) {
+            return NULL;
+        }
+
+        if(! self->Open(loop)) {
+            return self;
+        }
+
+        delete self;
+
+        return NULL;
+    }
+
     int Timer::Start(/* [in] */ TimeoutHandler &handler,
                      /* [in] */ uint64_t interval,
                      /* [in] */ uint64_t delay)
@@ -15,6 +31,7 @@ namespace Uv
         if(! result) {
             m_pHandler = &handler;
             Ref();
+
         }
 
         return result;
@@ -23,6 +40,8 @@ namespace Uv
     int Timer::Stop()
     {
         assert(m_pHandler);
+
+        cout << "Timer::Stop()" << endl;
 
         int result = uv_timer_stop(*this);
         m_pHandler = NULL;
@@ -38,8 +57,30 @@ namespace Uv
         self->m_pHandler->OnTimeout(self, status);
 
         if(status) {
-            self->Stop();
             self->Close();
         }
+    }
+    Timer::~Timer()
+    {
+        cout << "~Timer()" << endl;
+    }
+
+    int Timer::DoOpen(Loop &loop, uv_handle_t *peer)
+    {
+        return uv_timer_init(loop, (uv_timer_t *) peer);
+    }
+
+    void Timer::DoClose()
+    {
+        cout << "Timer::DoClose()" << endl;
+
+        if(IsStarted()) {
+            Stop();
+        }
+    }
+
+    size_t Timer::GetPeerSize() const
+    {
+        return sizeof(uv_timer_t);
     }
 }

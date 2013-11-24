@@ -2,6 +2,8 @@
 
 namespace Uv
 {
+    int Handle::count = 0;
+
     int Handle::Open(/* [in] */ Loop &loop)
     {
         assert(! IsOpened());
@@ -24,17 +26,21 @@ namespace Uv
 
     void Handle::Close()
     {
-        assert(IsOpened());
+        if(! IsOpened()) {
+            return;
+        }
+
+        SetFlags(Flags_Closing);
 
         DoClose();
-        uv_close(m_pPeer, OnClose);
 
-        // wait for pendding close request
-        GetLoop().Run(Loop::Once);
+        uv_close(m_pPeer, OnClose);
     }
 
     void Handle::OnClose(uv_handle_t *peer)
     {
+        cout << "Handle::OnClose()" << endl;
+
         Handle *self = (Handle *) peer->data;
         if(self->m_pWeakRef) {
             self->m_pWeakRef->OnClose(self);
@@ -42,17 +48,31 @@ namespace Uv
 
         free(self->m_pPeer);
         self->m_pPeer = NULL;
+
+        self->ClearFlags(Flags_Closing);
+
+        if(! self->m_refCount) {
+            cout << "Handle::OnClose(): delete self" << endl;
+            delete self;
+        }
     }
 
     void Handle::Unref()
     {
         assert(0 < m_refCount);
 
+        cout << "Handle(" << this << ")::Unref: " << m_refCount - 1<< endl;
+
         m_refCount --;
         if(m_refCount) {
             return;
         }
 
-        delete this;
+        if(IsClosed()) {
+            delete this;
+            return;
+        }
+
+        Close();
     }
 }
