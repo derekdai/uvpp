@@ -32,38 +32,38 @@ namespace Uv
         conn->Unref();
     }
 
-    int Stream::Write(/* [in] */ Buffer *buffer,
-                      /* [in] */ WriteHandler *handler)
+    int Stream::Send(/* [in] */ Buffer *buffer,
+                      /* [in] */ SendHandler *handler)
     {
         assert(buffer);
         assert(IsOpened());
-        assert(! m_pWriteBuffer);
+        assert(! m_pSendBuffer);
 
-        int result = uv_write(&m_writeReq, *this, *buffer, 1, OnWrite);
+        int result = uv_write(&m_writeReq, *this, *buffer, 1, OnSend);
         if(! result) {
             Ref();
 
-            m_pWriteBuffer = buffer->Ref();
-            m_pWriteBuffer->Lock();
+            m_pSendBuffer = buffer->Ref();
+            m_pSendBuffer->Lock();
 
-            m_pWriteHandler = handler;
+            m_pSendHandler = handler;
         }
 
         return result;
     }
 
-    void Stream::OnWrite(/* [in] */ uv_write_t *req,
+    void Stream::OnSend(/* [in] */ uv_write_t *req,
                          /* [in] */ int status)
     {
         Stream *self = (Stream *) req->data;
-        if(self->m_pWriteHandler) {
-            self->m_pWriteHandler->OnWrite(self, status);
-            self->m_pWriteHandler = NULL;
+        if(self->m_pSendHandler) {
+            self->m_pSendHandler->OnSend(self, status);
+            self->m_pSendHandler = NULL;
         }
 
-        self->m_pWriteBuffer->Unlock();
-        self->m_pWriteBuffer->Unref();
-        self->m_pWriteBuffer = NULL;
+        self->m_pSendBuffer->Unlock();
+        self->m_pSendBuffer->Unref();
+        self->m_pSendBuffer = NULL;
 
         if(status) {
             self->Close();
@@ -72,34 +72,34 @@ namespace Uv
         self->Unref();
     }
 
-    int Stream::ReadStart(ReadHandler &handler)
+    int Stream::RecvStart(RecvHandler &handler)
     {
         assert(IsOpened());
-        assert(! m_pReadHandler);
+        assert(! m_pRecvHandler);
 
-        int result = uv_read_start(*this, OnAlloc, OnRead);
+        int result = uv_read_start(*this, OnAlloc, OnRecv);
         if(! result) {
             Ref();
-            m_pReadHandler = &handler;
+            m_pRecvHandler = &handler;
         }
 
         return result;
     }
 
-    int Stream::ReadStop()
+    int Stream::RecvStop()
     {
         assert(IsOpened() || IsClosing());
-        assert(m_pReadHandler);
+        assert(m_pRecvHandler);
 
         int result = uv_read_stop(*this);
 
-        m_pReadHandler = NULL;
+        m_pRecvHandler = NULL;
         Unref();
 
         return result;
     }
 
-    void Stream::OnRead(/* [in] */ uv_stream_t *peer,
+    void Stream::OnRecv(/* [in] */ uv_stream_t *peer,
                         /* [in] */ ssize_t nread,
                         /* [in] */ const uv_buf_t *buf)
     {
@@ -108,7 +108,7 @@ namespace Uv
         if(nread > 0) {
             buffer = new Buffer(buf, nread);
         }
-        self->m_pReadHandler->OnRead(self,
+        self->m_pRecvHandler->OnRecv(self,
                                      buffer,
                                      nread < 0 ? nread : 0);
 
@@ -117,17 +117,15 @@ namespace Uv
         }
 
         if(nread < 0) {
-            self->ReadStop();
+            self->RecvStop();
             self->Close();
         }
     }
 
     void Stream::DoClose()
     {
-        cout << "Stream::DoClose()" << endl;
-
-        if(IsReadStarted()) {
-            ReadStop();
+        if(IsRecvStarted()) {
+            RecvStop();
         }
 
         if(IsListenStarted()) {

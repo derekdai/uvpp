@@ -41,8 +41,6 @@ namespace Uv
     {
         assert(m_pHandler);
 
-        cout << "Timer::Stop()" << endl;
-
         int result = uv_timer_stop(*this);
         m_pHandler = NULL;
 
@@ -60,10 +58,6 @@ namespace Uv
             self->Close();
         }
     }
-    Timer::~Timer()
-    {
-        cout << "~Timer()" << endl;
-    }
 
     int Timer::DoOpen(Loop &loop, uv_handle_t *peer)
     {
@@ -72,8 +66,6 @@ namespace Uv
 
     void Timer::DoClose()
     {
-        cout << "Timer::DoClose()" << endl;
-
         if(IsStarted()) {
             Stop();
         }

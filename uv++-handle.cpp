@@ -39,8 +39,6 @@ namespace Uv
 
     void Handle::OnClose(uv_handle_t *peer)
     {
-        cout << "Handle::OnClose()" << endl;
-
         Handle *self = (Handle *) peer->data;
         if(self->m_pWeakRef) {
             self->m_pWeakRef->OnClose(self);
@@ -52,7 +50,6 @@ namespace Uv
         self->ClearFlags(Flags_Closing);
 
         if(! self->m_refCount) {
-            cout << "Handle::OnClose(): delete self" << endl;
             delete self;
         }
     }
@@ -60,8 +57,6 @@ namespace Uv
     void Handle::Unref()
     {
         assert(0 < m_refCount);
-
-        cout << "Handle(" << this << ")::Unref: " << m_refCount - 1<< endl;
 
         m_refCount --;
         if(m_refCount) {

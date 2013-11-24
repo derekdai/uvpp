@@ -43,8 +43,6 @@ namespace Uv
         {
         }
 
-        virtual ~Timer();
-
         virtual int DoOpen(Loop &loop, uv_handle_t *peer);
 
         virtual size_t GetPeerSize() const;

@@ -29,11 +29,6 @@ namespace Uv
         {
         }
 
-        virtual ~Signal()
-        {
-            cout << "~Signal()" << endl;
-        }
-
         virtual size_t GetPeerSize() const;
 
         virtual int DoOpen(/* [in] */ Loop &loop,

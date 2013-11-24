@@ -85,7 +85,6 @@ namespace Uv
         {
             count --;
 
-            cout << "~Handle(): " << (IsOpened() ? "true" : "false") << endl;
             assert(! IsOpened());
         }
 

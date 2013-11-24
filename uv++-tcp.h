@@ -55,8 +55,6 @@ namespace Uv
             m_connectReq.data = this;
         }
 
-        virtual ~Tcp();
-
         virtual size_t GetPeerSize() const;
 
         virtual int DoOpen(/* [in] */ Loop &loop,

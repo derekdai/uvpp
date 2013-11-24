@@ -59,34 +59,34 @@ private:
 MyTimeoutHandler timeoutHandler;
 
 class Server: public Stream::InConnectHandler,
-                     Stream::ReadHandler,
-                     Stream::WriteHandler
+                     Stream::RecvHandler,
+                     Stream::SendHandler
 {
 private:
     virtual void OnConnect(Stream *server,
                            Stream *conn,
                            int status)
     {
-        cout << "New connection (" << conn << ")" << endl;
+        cout << "Server::OnConnect (" << conn << ")" << endl;
 
         timeoutHandler.AddHandle(conn);
-        conn->ReadStart(*this);
+        conn->RecvStart(*this);
     }
 
-    virtual void OnRead(Stream *conn, Buffer *buf, int status)
+    virtual void OnRecv(Stream *conn, Buffer *buf, int status)
     {
-        cout << "Server Read: " << string(buf->GetBase(), buf->GetSize()) << endl;
+        cout << "Server Recv: " << string(buf->GetBase(), buf->GetSize()) << endl;
 
-        buf = new Buffer("World\n");
-        conn->Write(buf, this);
+        cout << "Server Send: World" << endl;
+        buf = new Buffer("World");
+        conn->Send(buf, this);
         buf->Unref();
 
-        conn->ReadStop();
+        conn->RecvStop();
     }
 
-    virtual void OnWrite(Stream *conn, int status)
+    virtual void OnSend(Stream *conn, int status)
     {
-        cout << "Server::OnWrite()" << endl;
         conn->Close();
 
         cout << "Disconnected (" << conn << ")" << endl;
@@ -94,8 +94,8 @@ private:
 };
 
 class Client: public Tcp::OutConnectHandler,
-                     Stream::WriteHandler,
-                     Stream::ReadHandler
+                     Stream::SendHandler,
+                     Stream::RecvHandler
 {
 public:
     Client(): count(0)
@@ -110,22 +110,23 @@ private:
             return;
         }
 
-        cout << "Client Write: Hello" << endl;
+        cout << "Client Send: Hello" << endl;
 
         Buffer *buf = new Buffer("Hello");
-        conn->Write(buf, this);
+        conn->Send(buf, this);
         buf->Unref();
 
-        conn->ReadStart(*this);
+        conn->RecvStart(*this);
     }
 
-    void OnWrite(Stream *conn, int status)
+    void OnSend(Stream *conn, int status)
     {
         Inc(conn);
     }
 
-    void OnRead(Stream *conn, Buffer *buf, int status)
+    void OnRecv(Stream *conn, Buffer *buf, int status)
     {
+        cout << "Client Recv: " << string(buf->GetBase(), buf->GetSize()) << endl;
         Inc(conn);
     }
 
@@ -133,8 +134,7 @@ private:
     {
         count ++;
         if(2 == count) {
-            conn->Unref();
-            //conn->Close();
+            conn->Close();
         }
     }
 
@@ -173,11 +173,11 @@ int main()
     assert(! server->Listen(serverEventHandler));
     server->Unref();
 
-    //Client clientEventHandler;
-    //Tcp *client = Tcp::New();
-    //timeoutHandler.AddHandle(client);
-    //assert(! client->Connect(Ip4Address("127.0.0.1", 1234), &clientEventHandler));
-    //client->Unref();
+    Client clientEventHandler;
+    Tcp *client = Tcp::New();
+    timeoutHandler.AddHandle(client);
+    assert(! client->Connect(Ip4Address("127.0.0.1", 1234), &clientEventHandler));
+    client->Unref();
 
     Timer *timer = Timer::New();
     assert(timer);

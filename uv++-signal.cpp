@@ -65,8 +65,6 @@ namespace Uv
 
     void Signal::DoClose()
     {
-        cout << "Signal::DoClose()" << endl;
-
         if(IsStarted()) {
             Stop();
         }

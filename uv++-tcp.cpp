@@ -69,10 +69,6 @@ namespace Uv
 
         self->Unref();
     }
-    Tcp::~Tcp()
-    {
-        cout << "~Tcp()" << endl;
-    }
 
     size_t Tcp::GetPeerSize() const
     {

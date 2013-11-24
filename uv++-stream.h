@@ -23,19 +23,19 @@ namespace Uv
             friend class Stream;
         };
 
-        class ReadHandler
+        class RecvHandler
         {
         private:
-            virtual void OnRead(/* [in] */ Stream *source,
+            virtual void OnRecv(/* [in] */ Stream *source,
                                 /* [in] */ Buffer *buffer,
                                 /* [in] */ int status) = 0;
             friend class Stream;
         };
 
-        class WriteHandler
+        class SendHandler
         {
         private:
-            virtual void OnWrite(/* [in] */ Stream *source,
+            virtual void OnSend(/* [in] */ Stream *source,
                                  /* [in] */ int status) = 0;
             friend class Stream;
         };
@@ -49,25 +49,23 @@ namespace Uv
             return !!m_pInConnectHandler;
         }
 
-        int ReadStart(ReadHandler &handler);
+        int RecvStart(RecvHandler &handler);
 
-        bool IsReadStarted()
+        bool IsRecvStarted()
         {
-            return !!m_pReadHandler;
+            return !!m_pRecvHandler;
         }
 
-        int ReadStop();
+        int RecvStop();
 
-        int Write(/* [in] */ Buffer *buffer,
-                  /* [in] */ WriteHandler *handler = NULL);
+        int Send(/* [in] */ Buffer *buffer,
+                 /* [in] */ SendHandler *handler = NULL);
 
         virtual int Accept(/* [out] */ Stream **conn) = 0;
 
         virtual ~Stream()
         {
             count --;
-
-            cout << "~Stream()" << endl;
         }
 
         Stream * Ref()
@@ -79,9 +77,9 @@ namespace Uv
 
     protected:
         Stream(): m_pInConnectHandler(NULL),
-                  m_pReadHandler(NULL),
-                  m_pWriteHandler(NULL),
-                  m_pWriteBuffer(NULL)
+                  m_pRecvHandler(NULL),
+                  m_pSendHandler(NULL),
+                  m_pSendBuffer(NULL)
         {
             m_writeReq.data = this;
 
@@ -94,11 +92,11 @@ namespace Uv
         static void OnConnect(/* [in] */ uv_stream_t *peer,
                               /* [in] */ int status);
 
-        static void OnRead(/* [in] */ uv_stream_t *peer,
+        static void OnRecv(/* [in] */ uv_stream_t *peer,
                            /* [in] */ ssize_t nread,
                            /* [in] */ const uv_buf_t *buf);
 
-        static void OnWrite(/* [in] */ uv_write_t *req,
+        static void OnSend(/* [in] */ uv_write_t *req,
                             /* [in] */ int status);
 
     protected:
@@ -110,10 +108,10 @@ namespace Uv
     private:
         InConnectHandler *m_pInConnectHandler;
 
-        ReadHandler *m_pReadHandler;
+        RecvHandler *m_pRecvHandler;
 
         uv_write_t m_writeReq;
-        WriteHandler *m_pWriteHandler;
-        Buffer *m_pWriteBuffer;
+        SendHandler *m_pSendHandler;
+        Buffer *m_pSendBuffer;
     };
 }
