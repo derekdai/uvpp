@@ -70,4 +70,26 @@ namespace Uv
 
         Close();
     }
+
+    const char * Handle::GetTypeName() const
+    {
+        assert(IsOpened() || IsClosing());
+
+        switch(GetType()) {
+        case UV_IDLE:
+            return "Uv::Idle";
+        case UV_TIMER:
+            return "Uv::Timer";
+        case UV_SIGNAL:
+            return "Uv::Signal";
+        case UV_STREAM:
+            return "Uv::Stream";
+        case UV_TCP:
+            return "Uv::Tcp";
+        case UV_UDP:
+            return "Uv::Udp";
+        default:
+            return "Unknown";
+        }
+    }
 }

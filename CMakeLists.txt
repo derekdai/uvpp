@@ -11,8 +11,10 @@ add_library(uv++ SHARED
             uv++-signal
             uv++-address
             uv++-buffer
+            uv++-socket
             uv++-stream
             uv++-tcp
+            uv++-udp
 )
 target_link_libraries(uv++ uv)
 

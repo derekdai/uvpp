@@ -8,8 +8,10 @@
 #include "uv++-signal.h"
 #include "uv++-address.h"
 #include "uv++-buffer.h"
+#include "uv++-socket.h"
 #include "uv++-stream.h"
 #include "uv++-tcp.h"
+#include "uv++-udp.h"
 
 namespace Uv
 {

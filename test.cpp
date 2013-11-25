@@ -9,12 +9,26 @@ class MyTimeoutHandler: public Timer::TimeoutHandler,
                         public Handle::WeakRef
 {
 public:
-    MyTimeoutHandler(): count(3) {}
+    MyTimeoutHandler(): count(5) {}
 
     void AddHandle(Handle *handle)
     {
         handles.insert(handle);
         handle->SetWeakRef(this);
+    }
+
+    void CloseHandles()
+    {
+        set<Handle *>::iterator iter = handles.begin();
+        set<Handle *>::iterator end = handles.end();
+        for(; iter != end; ++iter) {
+            cout << "MyTimeoutHandler::CloseHandles: " << (*iter)->GetTypeName()
+                 << "(" << *iter << ")" << endl;
+            (*iter)->SetWeakRef(NULL);
+            (*iter)->Close();
+            handles.erase(iter);
+            cout << "MyTimeoutHandler::handles.size = " << handles.size() << endl;
+        }
     }
 
 private:
@@ -25,16 +39,11 @@ private:
             return;
         }
 
+        cout << "MyTimeoutHandler: " << count << endl;
         count --;
         if(0 >= count) {
             source->Stop();
-
-            set<Handle *>::iterator iter = handles.begin();
-            set<Handle *>::iterator end = handles.end();
-            for(; iter != end; ++iter) {
-                (*iter)->SetWeakRef(NULL);
-                (*iter)->Close();
-            }
+            CloseHandles();
         }
     }
 
@@ -154,6 +163,18 @@ private:
     }
 };
 
+class UdpPingServer: public Udp::RecvHandler
+{
+private:
+    void OnRecv(Udp *source,
+                Buffer *buf,
+                const Address &addr,
+                unsigned int flags,
+                int status)
+    {
+    }
+};
+
 int main()
 {
     SignalHandler signalHandler;
@@ -179,14 +200,25 @@ int main()
     assert(! client->Connect(Ip4Address("127.0.0.1", 1234), &clientEventHandler));
     client->Unref();
 
+    UdpPingServer pingServer;
+    Udp *udpServer = Udp::New();
+    assert(udpServer);
+    timeoutHandler.AddHandle(udpServer);
+    assert(! udpServer->Bind(Ip4Address("0.0.0.0", 5678)));
+    assert(! udpServer->RecvStart(pingServer));
+    udpServer->Unref();
+
     Timer *timer = Timer::New();
     assert(timer);
     assert(! timer->Start(timeoutHandler, 1000));
     timer->Unref();
 
     Loop::Run();
+    delete &Loop::Get();
 
-    cout << Handle::count << " alive" << endl;
+    timeoutHandler.CloseHandles();
+
+    cout << Handle::count << " handle alive" << endl;
 
     return 0;
 }

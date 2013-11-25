@@ -18,6 +18,15 @@ namespace Uv
         return NULL;
     }
 
+    int Tcp::Bind(/* [in] */ const Address &addr,
+                  /* [in] */ unsigned int flags)
+    {
+        assert(IsOpened());
+        assert(Address::Type_Unknown != addr.GetType());
+
+        return uv_tcp_bind(*this, addr);
+    }
+
     int Tcp::Accept(/* [out] */ Stream **conn)
     {
         assert(IsOpened());
@@ -82,8 +91,6 @@ namespace Uv
 
     void Tcp::DoClose()
     {
-        cout << "Tcp::DoClose()" << endl;
-
         Stream::DoClose();
     }
 }

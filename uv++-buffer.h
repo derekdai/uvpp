@@ -122,6 +122,7 @@ namespace Uv
         }
 
         friend class Stream;
+        friend class Udp;
 
     private:
         ~Buffer()

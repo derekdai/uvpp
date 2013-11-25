@@ -5,20 +5,24 @@ namespace Uv
     public:
         enum Type
         {
-            Type_Unknown,
-            Type_Ip4,
-            Type_Ip6,
+            Type_Unknown = AF_UNSPEC,
+            Type_Ip4 = AF_INET,
+            Type_Ip6 = AF_INET6,
+            //Type_Unix = AF_UNIX,
         };
     private:
         union UAddress
         {
+            sockaddr base;
             sockaddr_in ip4;
             sockaddr_in6 ip6;
+            //sockaddr_un unix;
         };
 
     public:
-        Address(): m_type(Type_Unknown)
+        Address()
         {
+            m_peer.base.sa_family = Type_Unknown;
         }
 
         Address(/* [in] */ Type type,
@@ -26,6 +30,11 @@ namespace Uv
                 /* [in] */ int port)
         {
             Set(type, ip, port);
+        }
+
+        Address(const sockaddr *addr)
+        {
+            Set(addr);
         }
 
         int SetIp4(/* [in] */ const char * ip,
@@ -44,9 +53,11 @@ namespace Uv
                 /* [in] */ const char * ip,
                 /* [in] */ int port);
 
+        int Set(/* [in] */ const sockaddr *peer);
+
         Type GetType() const
         {
-            return m_type;
+            return (Type) m_peer.base.sa_family;
         }
 
         operator sockaddr *()
@@ -60,8 +71,12 @@ namespace Uv
         }
 
     private:
-        Type m_type;
+        void SetType(sa_family_t type)
+        {
+            m_peer.base.sa_family = type;
+        }
 
+    private:
         UAddress m_peer;
     };
 

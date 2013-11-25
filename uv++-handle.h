@@ -30,17 +30,17 @@ namespace Uv
     public:
         void Close();
 
-        bool IsOpened()
+        bool IsOpened() const
         {
             return !IsClosing() && !IsClosed();
         }
 
-        bool IsClosing()
+        bool IsClosing() const
         {
             return !!(Flags_Closing & m_flags);
         }
 
-        bool IsClosed()
+        bool IsClosed() const
         {
             return !m_pPeer && !IsClosing();
         }
@@ -50,7 +50,7 @@ namespace Uv
             m_pWeakRef = weakref;
         }
 
-        WeakRef* GetWeakRef()
+        WeakRef* GetWeakRef() const
         {
             return m_pWeakRef;
         }
@@ -71,6 +71,15 @@ namespace Uv
             // TODO Handle should not access field of loop directly
             return Loop::FromPeer(m_pPeer->loop);
         }
+
+        uv_handle_type GetType() const
+        {
+            assert(IsOpened() || IsClosing());
+
+            return m_pPeer->type;
+        }
+
+        const char * GetTypeName() const;
 
     protected:
         Handle(): m_pPeer(NULL),

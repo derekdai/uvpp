@@ -16,20 +16,8 @@ namespace Uv
     public:
         static Tcp * New(Loop &Loop = Loop::Get());
 
-        int Bind(/* [in] */ Address::Type type,
-                 /* [in] */ const char *ip,
-                 /* [in] */ int port)
-        {
-            return Bind(Address(type, ip, port));
-        }
-
-        int Bind(/* [in] */ const Address &addr)
-        {
-            assert(IsOpened());
-            assert(Address::Type_Unknown != addr.GetType());
-
-            return uv_tcp_bind(*this, addr);
-        }
+        virtual int Bind(/* [in] */ const Address &addr,
+                         /* [in] */ unsigned int flags = 0);
 
         virtual int Accept(/* [out] */ Stream **conn);
 
