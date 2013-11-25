@@ -57,11 +57,25 @@ namespace Uv
             return !! m_pSendBuffer;
         }
 
-        int SetMembership(/* [in] */ const char *multicastAddr,
-                          /* [in] */ const char *interfaceAddr,
-                          /* [in] */ Action action)
+        int JoinMulticastGroup(/* [in] */ const char *multicastAddr,
+                               /* [in] */ const char *interfaceAddr)
+        {
+            return SetMulticastGroup(multicastAddr, interfaceAddr, JoinGroup);
+        }
+
+        int LeaveMulticastGroup(/* [in] */ const char *multicastAddr,
+                                /* [in] */ const char *interfaceAddr)
+        {
+            return SetMulticastGroup(multicastAddr, interfaceAddr, LeaveGroup);
+        }
+
+        int SetMulticastGroup(/* [in] */ const char *multicastAddr,
+                              /* [in] */ const char *interfaceAddr,
+                              /* [in] */ Action action)
         {
             assert(IsOpened());
+            assert(multicastAddr);
+            assert(interfaceAddr);
 
             return uv_udp_set_membership(*this,
                                          multicastAddr,

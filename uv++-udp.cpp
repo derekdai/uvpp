@@ -78,10 +78,11 @@ namespace Uv
     {
         Udp *self = (Udp *) peer->data;
         Buffer *buffer = NULL;
+        Address address;
         if(0 < nread) {
             buffer = new Buffer(buf, nread);
+            address.Set(addr);
         }
-        Address address(addr);
         self->m_pRecvHandler->OnRecv(self,
                                      buffer,
                                      address,
