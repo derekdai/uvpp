@@ -3,6 +3,12 @@ namespace Uv
     class Udp: public Socket
     {
     public:
+        enum Action
+        {
+            LeaveGroup = UV_LEAVE_GROUP,
+            JoinGroup = UV_JOIN_GROUP
+        };
+
         class SendHandler
         {
         private:
@@ -49,6 +55,47 @@ namespace Uv
         bool IsSending() const
         {
             return !! m_pSendBuffer;
+        }
+
+        int SetMembership(/* [in] */ const char *multicastAddr,
+                          /* [in] */ const char *interfaceAddr,
+                          /* [in] */ Action action)
+        {
+            assert(IsOpened());
+
+            return uv_udp_set_membership(*this,
+                                         multicastAddr,
+                                         interfaceAddr,
+                                         (uv_membership) action);
+        }
+
+        int SetMulticastLoop(/* [in] */ bool enable)
+        {
+            assert(IsOpened());
+
+            return uv_udp_set_multicast_loop(*this, enable);
+        }
+
+        int SetMulticastTtl(/* [in] */ unsigned char ttl)
+        {
+            assert(IsOpened());
+            assert(0 != ttl);
+
+            return uv_udp_set_multicast_ttl(*this, ttl);
+        }
+
+        int SetBroadcast(/* [in] */ bool enable)
+        {
+            assert(IsOpened());
+
+            return uv_udp_set_broadcast(*this, enable);
+        }
+
+        int SetTtl(/* [in] */ unsigned char ttl)
+        {
+            assert(IsOpened());
+
+            return uv_udp_set_ttl(*this, ttl);
         }
 
     protected:
