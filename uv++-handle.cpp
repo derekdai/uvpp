@@ -88,6 +88,20 @@ namespace Uv
             return "Uv::Tcp";
         case UV_UDP:
             return "Uv::Udp";
+        case UV_ASYNC:
+            return "Uv::Async";
+        case UV_CHECK:
+            return "Uv::Check";
+        case UV_POLL:
+            return "Uv::Poll";
+        case UV_HANDLE:
+            return "Uv::Handle";
+        case UV_NAMED_PIPE:
+            return "Uv::NamedPipe";
+        case UV_PROCESS:
+            return "Uv::Process";
+        case UV_TTY:
+            return "Uv::Tty";
         default:
             return "Unknown";
         }

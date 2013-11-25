@@ -13,23 +13,17 @@ namespace Uv
         };
 
     public:
-        static Loop & Get()
-        {
-            if(! s_pLoop) {
-                s_pLoop = new Loop();
-            }
+        static Loop & Get();
 
-            return *s_pLoop;
-        }
+        static int Run();
 
-        static int Run()
-        {
-            return Get().Run(Default);
-        }
+        static void Free();
 
-        int Run(RunMode mode)
+        int Run(/* [in] */ RunMode mode);
+
+        bool IsRunning() const
         {
-            return uv_run(m_pPeer, (uv_run_mode) mode);
+            return !! m_runLevel;
         }
 
         void Stop()
@@ -42,16 +36,17 @@ namespace Uv
             return m_pPeer;
         }
 
+    private:
+        Loop(): m_pPeer(uv_loop_new()),
+                m_runLevel(0)
+        {
+            m_pPeer->data = this;
+        }
+
         ~Loop()
         {
             uv_loop_delete(m_pPeer);
             s_pLoop = NULL;
-        }
-
-    private:
-        Loop(): m_pPeer(uv_loop_new())
-        {
-            m_pPeer->data = this;
         }
 
         static Loop & FromPeer(uv_loop_t *peer)
@@ -65,6 +60,8 @@ namespace Uv
         static __thread Loop * s_pLoop;
 
         uv_loop_t * m_pPeer;
+
+        unsigned int m_runLevel;
     };
 }
 

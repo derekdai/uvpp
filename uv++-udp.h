@@ -21,6 +21,7 @@ namespace Uv
                                 /* [in] */ int status) = 0;
             friend class Udp;
         };
+
     public:
         static Udp * New(/* [in] */ Loop &loop = Loop::Get());
 

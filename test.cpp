@@ -9,7 +9,7 @@ class MyTimeoutHandler: public Timer::TimeoutHandler,
                         public Handle::WeakRef
 {
 public:
-    MyTimeoutHandler(): count(5) {}
+    MyTimeoutHandler(): count(2) {}
 
     void AddHandle(Handle *handle)
     {
@@ -172,10 +172,29 @@ private:
                 unsigned int flags,
                 int status)
     {
+        cout << "UdpServer Recv: " << string(buf->GetBase(), buf->GetSize()) << endl;
+
+        source->Close();
+    }
+};
+
+class UdpPingClient: public Udp::RecvHandler
+{
+public:
+    void OnRecv(Udp *source,
+                Buffer *buf,
+                const Address &addr,
+                unsigned int flags,
+                int status)
+    {
+        cout << "UdpClient Recv: " << string(buf->GetBase(), buf->GetSize()) << endl;
+
+        source->Close();
     }
 };
 
 int main()
+
 {
     SignalHandler signalHandler;
     Signal *signal = Signal::New();
@@ -204,18 +223,36 @@ int main()
     Udp *udpServer = Udp::New();
     assert(udpServer);
     timeoutHandler.AddHandle(udpServer);
-    assert(! udpServer->Bind(Ip4Address("0.0.0.0", 5678)));
+    assert(! udpServer->Bind(Ip4Address("0.0.0.0", 1357)));
     assert(! udpServer->RecvStart(pingServer));
+
+    UdpPingClient pingClient;
+    Udp *udpClient = Udp::New();
+    assert(udpClient);
+    timeoutHandler.AddHandle(udpClient);
+    assert(! udpClient->Bind(Ip4Address("0.0.0.0", 2468)));
+    assert(! udpClient->RecvStart(pingClient));
+
+    Buffer *buf = new Buffer("Hello");
+    udpServer->Send(*buf, Ip4Address("127.0.0.1", 2468));
+    buf->Unref();
+
+    buf = new Buffer("World");
+    udpClient->Send(*buf, Ip4Address("127.0.0.1", 1357));
+    buf->Unref();
+
     udpServer->Unref();
+    udpClient->Unref();
 
     Timer *timer = Timer::New();
+    timeoutHandler.AddHandle(timer);
     assert(timer);
     assert(! timer->Start(timeoutHandler, 1000));
     timer->Unref();
 
     Loop::Run();
-    delete &Loop::Get();
 
+    Loop::Free();
     timeoutHandler.CloseHandles();
 
     cout << Handle::count << " handle alive" << endl;
