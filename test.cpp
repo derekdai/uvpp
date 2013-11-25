@@ -9,7 +9,7 @@ class MyTimeoutHandler: public Timer::TimeoutHandler,
                         public Handle::WeakRef
 {
 public:
-    MyTimeoutHandler(): count(2) {}
+    MyTimeoutHandler(): count(5) {}
 
     void AddHandle(Handle *handle)
     {
@@ -29,6 +29,8 @@ public:
             handles.erase(iter);
             cout << "MyTimeoutHandler::handles.size = " << handles.size() << endl;
         }
+
+        Loop::Get().Run(Loop::Once);
     }
 
 private:
@@ -163,8 +165,23 @@ private:
     }
 };
 
-class UdpPingServer: public Udp::RecvHandler
+class PingPeer: public Udp::RecvHandler
 {
+public:
+    PingPeer(const char * name)
+    {
+        assert(name);
+
+        this->name = strdup(name);
+    }
+
+    ~PingPeer()
+    {
+        if(name) {
+            free(name);
+        }
+    }
+
 private:
     void OnRecv(Udp *source,
                 Buffer *buf,
@@ -172,25 +189,13 @@ private:
                 unsigned int flags,
                 int status)
     {
-        cout << "UdpServer Recv: " << string(buf->GetBase(), buf->GetSize()) << endl;
+        cout << name << " Recv: " << string(buf->GetBase(), buf->GetSize()) << endl;
 
         source->Close();
     }
-};
 
-class UdpPingClient: public Udp::RecvHandler
-{
-public:
-    void OnRecv(Udp *source,
-                Buffer *buf,
-                const Address &addr,
-                unsigned int flags,
-                int status)
-    {
-        cout << "UdpClient Recv: " << string(buf->GetBase(), buf->GetSize()) << endl;
-
-        source->Close();
-    }
+private:
+    char *name;
 };
 
 int main()
@@ -201,6 +206,7 @@ int main()
     timeoutHandler.AddHandle(signal);
     assert(! signal->Start(SIGINT, signalHandler));
     signal->Unref();
+
     signal = Signal::New();
     timeoutHandler.AddHandle(signal);
     assert(! signal->Start(SIGTERM, signalHandler));
@@ -219,30 +225,30 @@ int main()
     assert(! client->Connect(Ip4Address("127.0.0.1", 1234), &clientEventHandler));
     client->Unref();
 
-    UdpPingServer pingServer;
-    Udp *udpServer = Udp::New();
-    assert(udpServer);
-    timeoutHandler.AddHandle(udpServer);
-    assert(! udpServer->Bind(Ip4Address("0.0.0.0", 1357)));
-    assert(! udpServer->RecvStart(pingServer));
+    PingPeer peer1("Peer1");
+    Udp *endPoint1 = Udp::New();
+    assert(endPoint1);
+    timeoutHandler.AddHandle(endPoint1);
+    assert(! endPoint1->Bind(Ip4Address("0.0.0.0", 1357)));
+    assert(! endPoint1->RecvStart(peer1));
 
-    UdpPingClient pingClient;
-    Udp *udpClient = Udp::New();
-    assert(udpClient);
-    timeoutHandler.AddHandle(udpClient);
-    assert(! udpClient->Bind(Ip4Address("0.0.0.0", 2468)));
-    assert(! udpClient->RecvStart(pingClient));
+    PingPeer peer2("Peer2");
+    Udp *endPoint2 = Udp::New();
+    assert(endPoint2);
+    timeoutHandler.AddHandle(endPoint2);
+    assert(! endPoint2->Bind(Ip4Address("0.0.0.0", 2468)));
+    assert(! endPoint2->RecvStart(peer2));
 
     Buffer *buf = new Buffer("Hello");
-    udpServer->Send(*buf, Ip4Address("127.0.0.1", 2468));
+    assert(! endPoint1->Send(*buf, Ip4Address("127.0.0.1", 2468)));
     buf->Unref();
 
     buf = new Buffer("World");
-    udpClient->Send(*buf, Ip4Address("127.0.0.1", 1357));
+    assert(! endPoint2->Send(*buf, Ip4Address("127.0.0.1", 1357)));
     buf->Unref();
 
-    udpServer->Unref();
-    udpClient->Unref();
+    endPoint1->Unref();
+    endPoint2->Unref();
 
     Timer *timer = Timer::New();
     timeoutHandler.AddHandle(timer);
@@ -251,9 +257,8 @@ int main()
     timer->Unref();
 
     Loop::Run();
-
-    Loop::Free();
     timeoutHandler.CloseHandles();
+    Loop::Free();
 
     cout << Handle::count << " handle alive" << endl;
 

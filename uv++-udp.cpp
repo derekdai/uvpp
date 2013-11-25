@@ -65,8 +65,6 @@ namespace Uv
 
     void Udp::DoClose()
     {
-        cout << "Udp::DoClose()" << endl;
-
         if(IsRecvStarted()) {
             RecvStop();
         }
@@ -89,6 +87,10 @@ namespace Uv
                                      address,
                                      flags,
                                      0 > nread ? nread : 0);
+
+        if(buffer) {
+            buffer->Unref();
+        }
 
         if(0 > nread) {
             self->Close();
