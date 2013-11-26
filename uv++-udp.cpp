@@ -76,13 +76,22 @@ namespace Uv
                      /* [in] */ const sockaddr *addr,
                      /* [in] */ unsigned flags)
     {
+        if(! nread) {
+            Buffer::Free(buf->base);
+            return;
+        }
+
         Udp *self = (Udp *) peer->data;
         Buffer *buffer = NULL;
-        Address address;
         if(0 < nread) {
             buffer = new Buffer(buf, nread);
+        }
+
+        Address address;
+        if(addr) {
             address.Set(addr);
         }
+
         self->m_pRecvHandler->OnRecv(self,
                                      buffer,
                                      address,
