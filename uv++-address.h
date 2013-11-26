@@ -1,7 +1,13 @@
+#include <cstdio>
+#include <cstring>
+
 namespace Uv
 {
     class Address
     {
+    private:
+        #define ADDR_MAXLEN       (55)
+
     public:
         enum Type
         {
@@ -20,8 +26,9 @@ namespace Uv
         };
 
     public:
-        Address()
+        Address(): m_pStr()
         {
+            m_pStr = new char[ADDR_MAXLEN];
             m_peer.base.sa_family = Type_Unknown;
         }
 
@@ -29,12 +36,19 @@ namespace Uv
                 /* [in] */ const char *ip,
                 /* [in] */ int port)
         {
+            m_pStr = new char[ADDR_MAXLEN];
             Set(type, ip, port);
         }
 
         Address(const sockaddr *addr)
         {
+            m_pStr = new char[ADDR_MAXLEN];
             Set(addr);
+        }
+
+        ~Address()
+        {
+            delete[] m_pStr;
         }
 
         int SetIp4(/* [in] */ const char * ip,
@@ -60,6 +74,45 @@ namespace Uv
             return (Type) m_peer.base.sa_family;
         }
 
+        int GetPort() const
+        {
+            if(Type_Ip4 == GetType()) {
+                return m_peer.ip4.sin_port;
+            }
+            else if(Type_Ip6 == GetType()) {
+                return m_peer.ip6.sin6_port;
+            }
+
+            assert(0);
+        }
+
+        const char * ToString() const
+        {
+            if(! m_pStr) {
+                return NULL;
+            }
+
+            m_pStr[0] = '\0';
+
+            if(Type_Ip4 == GetType()) {
+                uv_ip4_name((struct sockaddr_in *) &m_peer.ip4,
+                            m_pStr,
+                            ADDR_MAXLEN);
+            }
+            else if(Type_Ip6 == GetType()) {
+                uv_ip6_name((struct sockaddr_in6 *) &m_peer.ip6,
+                            m_pStr,
+                            ADDR_MAXLEN);
+            }
+            int addrLen = strlen(m_pStr);
+            snprintf(m_pStr + addrLen,
+                     ADDR_MAXLEN - strlen(m_pStr),
+                     ":%d",
+                     GetPort());
+
+            return m_pStr;
+        }
+
         operator sockaddr *()
         {
             return (sockaddr *) &m_peer;
@@ -78,6 +131,8 @@ namespace Uv
 
     private:
         UAddress m_peer;
+
+        char *m_pStr;
     };
 
     class Ip4Address: public Address
