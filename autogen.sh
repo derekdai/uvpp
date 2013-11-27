@@ -7,6 +7,8 @@ if [[ "$PWD" != "$src_dir" ]]; then
     done
 fi
 
+CC=clang \
+CXX=clang++ \
 CXXFLAGS=-fno-rtti \
 cmake "$src_dir" \
     -DCMAKE_BUILD_TYPE=Debug \
