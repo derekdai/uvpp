@@ -31,6 +31,11 @@ namespace Uv
             uv_stop(m_pPeer);
         }
 
+        uint64_t Now()
+        {
+            return uv_now(*this);
+        }
+
         operator uv_loop_t *()
         {
             return m_pPeer;
