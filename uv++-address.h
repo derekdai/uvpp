@@ -27,7 +27,7 @@ namespace Uv
         };
 
     public:
-        Address(): m_pStr(NULL)
+        Address()
         {
             m_pStr = new char[ADDR_MAXLEN];
             m_peer.base.sa_family = Type_Unknown;
@@ -47,8 +47,9 @@ namespace Uv
             Set(addr);
         }
 
-        Address(const Address &other): m_pStr(NULL)
+        Address(const Address &other)
         {
+            m_pStr = new char[ADDR_MAXLEN];
             Set((const sockaddr *) &other.m_peer);
         }
 
