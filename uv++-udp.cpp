@@ -126,14 +126,18 @@ namespace Uv
                      /* [in] */ int status)
     {
         Udp *self = (Udp *) req->data;
+        Buffer *sendBuffer = self->m_pSendBuffer;
+        self->m_pSendBuffer = NULL;
+
         if(self->m_pSendHandler) {
-            self->m_pSendHandler->OnSend(self, status);
+            SendHandler *sendHandler = self->m_pSendHandler;
             self->m_pSendHandler = NULL;
+
+            sendHandler->OnSend(self, status);
         }
 
-        self->m_pSendBuffer->Unlock();
-        self->m_pSendBuffer->Unref();
-        self->m_pSendBuffer = NULL;
+        sendBuffer->Unlock();
+        sendBuffer->Unref();
 
         if(status) {
             self->Close();
