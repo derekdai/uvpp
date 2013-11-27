@@ -36,7 +36,17 @@ namespace Uv
             return uv_now(*this);
         }
 
+        int GetFd() const
+        {
+            return uv_backend_fd(*this);
+        }
+
         operator uv_loop_t *()
+        {
+            return m_pPeer;
+        }
+
+        operator const uv_loop_t *() const
         {
             return m_pPeer;
         }
