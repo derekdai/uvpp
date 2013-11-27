@@ -14,17 +14,17 @@ namespace Uv
     public:
         static Timer * New(Loop &loop = Loop::Get());
 
-        int Start(/* [in] */ TimeoutHandler &handler,
-                  /* [in] */ uint64_t interval)
+        int Start(/* [in] */ uint64_t interval,
+                  /* [in] */ TimeoutHandler &handler)
         {
             assert(IsOpened());
 
-            return Start(handler, interval, interval);
+            return Start(interval, interval, handler);
         }
 
-        int Start(/* [in] */ TimeoutHandler &handler,
-                  /* [in] */ uint64_t interval,
-                  /* [in] */ uint64_t delay);
+        int Start(/* [in] */ uint64_t interval,
+                  /* [in] */ uint64_t delay,
+                  /* [in] */ TimeoutHandler &handler);
 
         bool IsStarted()
         {

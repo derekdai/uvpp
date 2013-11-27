@@ -253,7 +253,7 @@ int main()
     Timer *timer = Timer::New();
     timeoutHandler.AddHandle(timer);
     assert(timer);
-    assert(! timer->Start(timeoutHandler, 1000));
+    assert(! timer->Start(1000, timeoutHandler));
     timer->Unref();
 
     Loop::Run();

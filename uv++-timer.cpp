@@ -18,9 +18,9 @@ namespace Uv
         return NULL;
     }
 
-    int Timer::Start(/* [in] */ TimeoutHandler &handler,
-                     /* [in] */ uint64_t interval,
-                     /* [in] */ uint64_t delay)
+    int Timer::Start(/* [in] */ uint64_t interval,
+                     /* [in] */ uint64_t delay,
+                     /* [in] */ TimeoutHandler &handler)
     {
         assert(! m_pHandler);
 
