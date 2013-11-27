@@ -41,9 +41,13 @@ private:
         }
 
         result = LookupRegistry();
-        if(! result) {
-            goto end;
+        if(result) {
+            goto stopListen;
         }
+
+        cout << "device started up!" << endl;
+
+        goto end;
 
     stopListen:
         ListenStop();
@@ -95,11 +99,9 @@ private:
     }
 
     void OnPingAck(/* [in] */ Udp *source,
-                /* [in] */ Buffer *buf,
-                /* [in] */ const Address &addr)
+                   /* [in] */ Buffer *buf,
+                   /* [in] */ const Address &addr)
     {
-        cout << "Ping got ack" << endl;
-
         m_pinging = false;
     }
 
@@ -133,7 +135,6 @@ private:
             m_pinging = false;
         }
         else {
-            cout << "Ping" << endl;
             if(PingRegistry(m_regAddr)) {
                 cout << "failed to ping registry" << endl;
                 return;
