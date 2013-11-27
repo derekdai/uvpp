@@ -8,10 +8,10 @@ namespace Uv
     {
         int result;
         if(Type_Ip4 == type) {
-            result = uv_ip4_addr(ip, port, &m_peer.ip4);
+            result = uv_ip4_addr(ip, port, (sockaddr_in *) &m_peer);
         }
         else {
-            result = uv_ip6_addr(ip, port, &m_peer.ip6);
+            result = uv_ip6_addr(ip, port, (sockaddr_in6 *) &m_peer);
         }
 
         return result;

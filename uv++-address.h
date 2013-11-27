@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring>
+#include <arpa/inet.h>
 
 namespace Uv
 {
@@ -77,10 +78,10 @@ namespace Uv
         int GetPort() const
         {
             if(Type_Ip4 == GetType()) {
-                return m_peer.ip4.sin_port;
+                return ntohs(m_peer.ip4.sin_port);
             }
             else if(Type_Ip6 == GetType()) {
-                return m_peer.ip6.sin6_port;
+                return ntohl(m_peer.ip6.sin6_port);
             }
 
             assert(0);
@@ -121,6 +122,30 @@ namespace Uv
         operator const sockaddr *() const
         {
             return (sockaddr *) &m_peer;
+        }
+
+        static bool Less(const Address &addr1, const Address &addr2)
+        {
+            if(&addr1 == &addr2) {
+                return false;
+            }
+
+            if(addr1.GetType() != addr2.GetType()) {
+                if(Type_Ip4 == addr1.GetType()) {
+                    return true;
+                }
+                return false;
+            }
+
+            if(Type_Ip4 == addr1.GetType()) {
+                return -1 == memcmp(&addr1.m_peer.ip4,
+                                    &addr2.m_peer.ip4,
+                                    sizeof(sockaddr_in));
+            }
+
+            return -1 == memcmp(&addr1.m_peer.ip6,
+                                &addr2.m_peer.ip6,
+                                sizeof(sockaddr_in));
         }
 
     private:
