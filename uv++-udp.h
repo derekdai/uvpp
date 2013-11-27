@@ -32,7 +32,12 @@ namespace Uv
         static Udp * New(/* [in] */ Loop &loop = Loop::Get());
 
         int Bind(/* [in] */ const Address &addr,
-                 /* [in] */ unsigned int flags = 0);
+                 /* [in] */ unsigned int flags = 0)
+        {
+            assert(IsOpened());
+
+            return uv_udp_bind(*this, addr, flags);
+        }
 
         Udp * Ref()
         {

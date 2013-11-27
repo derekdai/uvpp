@@ -25,7 +25,7 @@ namespace Uv
         {
         private:
             virtual void OnSend(/* [in] */ Stream *source,
-                                 /* [in] */ int status) = 0;
+                                /* [in] */ int status) = 0;
             friend class Stream;
         };
 
@@ -35,14 +35,14 @@ namespace Uv
 
         bool IsListenStarted()
         {
-            return !!m_pInConnectHandler;
+            return !! m_pInConnectHandler;
         }
 
-        int RecvStart(RecvHandler &handler);
+        int RecvStart(/* [in] */ RecvHandler &handler);
 
         bool IsRecvStarted()
         {
-            return !!m_pRecvHandler;
+            return !! m_pRecvHandler;
         }
 
         int RecvStop();
@@ -86,7 +86,7 @@ namespace Uv
                            /* [in] */ const uv_buf_t *buf);
 
         static void OnSend(/* [in] */ uv_write_t *req,
-                            /* [in] */ int status);
+                           /* [in] */ int status);
 
     protected:
         operator uv_stream_t *()

@@ -41,17 +41,17 @@ namespace Uv
 
         bool IsOwned() const
         {
-            return !!(m_flags & Owned);
+            return !! (m_flags & Owned);
         }
 
         bool IsWritable() const
         {
-            return !!(m_flags & Writable);
+            return !! (m_flags & Writable);
         }
 
         bool IsLocked() const
         {
-            return !!(m_flags & Locked);
+            return !! (m_flags & Locked);
         }
 
         void Lock()
@@ -65,7 +65,7 @@ namespace Uv
         {
             assert(IsLocked());
 
-            m_flags &= ~Locked;
+            m_flags &= ~ Locked;
         }
 
         size_t GetSize() const
@@ -99,7 +99,7 @@ namespace Uv
 
         operator const uv_buf_t * () const
         {
-            return & m_peer;
+            return &m_peer;
         }
 
         static char * Alloc(/* [in] */ size_t size);
@@ -133,9 +133,9 @@ namespace Uv
         }
 
     private:
-        int m_refCount;
-
         uv_buf_t m_peer;
+
+        int m_refCount;
 
         unsigned int m_flags;
     };

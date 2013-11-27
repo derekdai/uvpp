@@ -18,14 +18,6 @@ namespace Uv
         return NULL;
     }
 
-    int Udp::Bind(/* [in] */ const Address &addr,
-                  /* [in] */ unsigned int flags)
-    {
-        assert(IsOpened());
-
-        return uv_udp_bind(*this, addr, flags);
-    }
-
     int Udp::RecvStart(/* [in] */ RecvHandler &handler)
     {
         assert(IsOpened());

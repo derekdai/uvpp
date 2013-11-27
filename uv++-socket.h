@@ -11,7 +11,8 @@ namespace Uv
             return Bind(Address(type, ip, port), flags);
         }
 
-        virtual int Bind(const Address &addr, unsigned int flags = 0) = 0;
+        virtual int Bind(/* [in] */ const Address &addr,
+                         /* [in] */ unsigned int flags = 0) = 0;
 
     protected:
         static void OnAlloc(/* [in] */ uv_handle_t *handle,
