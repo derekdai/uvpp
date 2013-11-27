@@ -32,4 +32,55 @@ namespace Uv
 
         return 0;
     }
+
+    const char * Address::ToString() const
+    {
+        if(! m_pStr) {
+            return NULL;
+        }
+
+        m_pStr[0] = '\0';
+
+        if(Type_Ip4 == GetType()) {
+            uv_ip4_name((struct sockaddr_in *) &m_peer.ip4,
+                        m_pStr,
+                        ADDR_MAXLEN);
+        }
+        else if(Type_Ip6 == GetType()) {
+            uv_ip6_name((struct sockaddr_in6 *) &m_peer.ip6,
+                        m_pStr,
+                        ADDR_MAXLEN);
+        }
+        int addrLen = strlen(m_pStr);
+        snprintf(m_pStr + addrLen,
+                 ADDR_MAXLEN - strlen(m_pStr),
+                 ":%d",
+                 GetPort());
+
+        return m_pStr;
+    }
+
+    bool Address::Less(const Address &addr1, const Address &addr2)
+    {
+        if(&addr1 == &addr2) {
+            return false;
+        }
+
+        if(addr1.GetType() != addr2.GetType()) {
+            if(Type_Ip4 == addr1.GetType()) {
+                return true;
+            }
+            return false;
+        }
+
+        if(Type_Ip4 == addr1.GetType()) {
+            return -1 == memcmp(&addr1.m_peer.ip4,
+                                &addr2.m_peer.ip4,
+                                sizeof(sockaddr_in));
+        }
+
+        return -1 == memcmp(&addr1.m_peer.ip6,
+                            &addr2.m_peer.ip6,
+                            sizeof(sockaddr_in));
+    }
 }
