@@ -47,6 +47,11 @@ namespace Uv
             Set(addr);
         }
 
+        Address(const Address &other): m_pStr(NULL)
+        {
+            Set((const sockaddr *) &other.m_peer);
+        }
+
         ~Address()
         {
             delete[] m_pStr;
