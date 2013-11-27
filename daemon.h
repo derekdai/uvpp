@@ -1,3 +1,6 @@
+#ifndef __DAEMON_H_
+#define __DAEMON_H_
+
 #include <iostream>
 #include <set>
 #include <uv++.h>
@@ -69,3 +72,4 @@ private:
     set<Handle *> handles;
 };
 
+#endif /* __DAEMON_H_ */

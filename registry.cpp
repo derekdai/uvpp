@@ -2,97 +2,111 @@
 #include <iostream>
 
 #include "daemon.h"
+#include "generic-device.h"
 #include "config.h"
 
 using namespace std;
 using namespace Uv;
 
-class Registry: public Daemon,
-                public Udp::RecvHandler,
-                public Stream::InConnectHandler
+class DeviceInfo
 {
 public:
-    Registry(): m_pUdp(NULL), m_pTcp(NULL)
+    DeviceInfo(): m_timestamp(0)
+    {
+    }
+
+    DeviceInfo(/* [in] */ const Address &addr,
+               /* [in] */ uint64_t timestamp = 0): m_timestamp(0)
+    {
+    }
+
+    const Address & GetAddress() const
+    {
+        return m_addr;
+    }
+
+    bool IsExpired(uint64_t now) const
+    {
+        return KEEPALIVE_INTERVAL < (now - m_timestamp);
+    }
+
+    void Ping(uint64_t now)
+    {
+        assert(now > m_timestamp);
+
+        m_timestamp = now;
+    }
+
+    bool operator() (const DeviceInfo &l, const DeviceInfo &r) const
+    {
+        return l.m_addr < r.m_addr;
+    }
+
+    bool operator() (const DeviceInfo &l, const Address &r) const
+    {
+        return l.m_addr < r;
+    }
+
+private:
+    Address m_addr;
+
+    uint64_t m_timestamp;
+};
+
+class Registry: public GenericDevice,
+                private Udp::RecvHandler,
+                private Udp::SendHandler,
+                private Stream::InConnectHandler,
+                private Timer::TimeoutHandler
+{
+public:
+    Registry()
     {
     }
 
     virtual ~Registry()
     {
-        if(m_pUdp) {
-            m_pUdp->Unref();
-        }
-
-        if(m_pTcp) {
-            m_pTcp->Unref();
-        }
     }
 
 private:
-    void LookupDevices()
-    {
-        Buffer *buf = new Buffer(REQ_DEV_LOOKUP);
-        m_pUdp->Send(*buf, Ip4Address(DEV_UDP_MCAST_GROUP, DEV_UDP_PORT));
-        buf->Unref();
-    }
-
     virtual int DoInit()
     {
-        m_pUdp = Udp::New();
-        if(! m_pUdp) {
-            return UV_ENOMEM;
-        }
-
-        int result = m_pUdp->Bind(Ip4Address("0.0.0.0", REG_UDP_PORT));
+        int result = GenericDevice::DoInit();
         if(result) {
-            goto unrefUdp;
+            goto end;
         }
 
-        result = m_pUdp->RecvStart(*this);
+        result = JoinMulticastGroup(Ip4Address("0.0.0.0", REG_UDP_PORT),
+                                    REG_UDP_MCAST_GROUP,
+                                    UDP_MCAST_TTL,
+                                    *this);
         if(result) {
-            goto unrefUdp;
+            goto end;
         }
 
-        result = m_pUdp->SetMulticastTtl(UDP_MCAST_TTL);
+        result = Listen(Ip4Address("0.0.0.0", REG_TCP_PORT), *this);
         if(result) {
-            goto unrefUdp;
+            goto leaveMulticastGroup;
         }
 
-        result = m_pUdp->JoinMulticastGroup(REG_UDP_MCAST_GROUP,
-                                            "0.0.0.0");
+        //result = LookupRegistry(this);
+        //if(result) {
+            //goto stopListen;
+        //}
+
+        result = LookupDevices();
         if(result) {
-            goto unrefUdp;
+            goto stopListen;
         }
 
-        m_pTcp = Tcp::New();
-        if(! m_pTcp) {
-            goto stopUdpRecv;
-        }
-
-        result = m_pTcp->Bind(Ip4Address("0.0.0.0", REG_TCP_PORT));
-        if(result) {
-            goto unrefTcp;
-        }
-
-        result = m_pTcp->Listen(*this);
-        if(result) {
-            goto unrefTcp;
-        }
-
-        MonitorHandle(m_pUdp);
-        MonitorHandle(m_pTcp);
-
-        LookupDevices();
+        cout << "registry started up!" << endl;
 
         goto end;
 
-    unrefTcp:
-        m_pTcp->Unref();
-        m_pTcp = NULL;
-    stopUdpRecv:
-        m_pUdp->RecvStop();
-    unrefUdp:
-        m_pUdp->Unref();
-        m_pUdp = NULL;
+    stopListen:
+        ListenStop();
+    leaveMulticastGroup:
+        LeaveMulticastGroup();
     end:
         return result;
     }
@@ -106,11 +120,47 @@ private:
         MonitorHandle(conn);
     }
 
+    void OnSend(/* [in] */ Udp *source, int status)
+    {
+    }
+
+    void OnRegLookupAck(/* [in] */ Udp *source,
+                        /* [in] */ Buffer *buf,
+                        /* [in] */ const Address &addr)
+    {
+        cout << "found another registry @" << addr.ToString() << ", bye!" << endl;
+
+        // TODO this causes issue
+        Stop();
+    }
+
     void OnDevLookupAck(/* [in] */ Udp *source,
                         /* [in] */ Buffer *buf,
                         /* [in] */ const Address &addr)
     {
+        set<DeviceInfo>::iterator iter = m_devices.find(addr);
+        if(iter != m_devices.end()) {
+            return;
+        }
+
+        if(! m_devices.size()) {
+            StartTimer(KEEPALIVE_INTERVAL, *this);
+        }
+
         cout << "found device @" << addr.ToString() << endl;
+        m_devices.insert(DeviceInfo(addr, Loop::Get().Now()));
+    }
+
+    void OnPing(/* [in] */ Udp *source,
+                   /* [in] */ Buffer *buf,
+                   /* [in] */ const Address &addr)
+    {
+        if(AckPingRegistry(addr)) {
+            cout << "failed to ack ping from device @" << addr.ToString() << endl;
+        }
+
+        set<DeviceInfo>::iterator iter = m_devices.find(addr);
+        const_cast<DeviceInfo &>(*iter).Ping(source->GetLoop().Now());
     }
 
     void OnRegLookupReq(/* [in] */ Udp *source,
@@ -143,15 +193,42 @@ private:
         if(! strncmp(REQ_REG_LOOKUP, *buf, STRLEN(REQ_REG_LOOKUP))) {
             OnRegLookupReq(source, buf, addr);
         }
+        else if(! strncmp(ACK_REG_LOOKUP, *buf, STRLEN(ACK_REG_LOOKUP))) {
+            OnRegLookupAck(source, buf, addr);
+        }
         else if(! strncmp(ACK_DEV_LOOKUP, *buf, STRLEN(ACK_DEV_LOOKUP))) {
             OnDevLookupAck(source, buf, addr);
+        }
+        else if(! strncmp(REQ_PING, *buf, STRLEN(REQ_PING))) {
+            OnPing(source, buf, addr);
+        }
+    }
+
+    void OnTimeout(/* [in] */ Timer *source, int status)
+    {
+        if(status) {
+            return;
+        }
+
+        uint64_t now = source->GetLoop().Now();
+        set<DeviceInfo>::iterator curr = m_devices.begin();
+        set<DeviceInfo>::iterator end = m_devices.end();
+        for(; curr != end; ++ curr) {
+            if(! (*curr).IsExpired(now)) {
+                continue;
+            }
+
+            cout << "device down" << endl; 
+            m_devices.erase(curr);
+        }
+
+        if(! m_devices.size()) {
+            StopTimer();
         }
     }
 
 private:
-    Udp *m_pUdp;
-
-    Tcp *m_pTcp;
+    set<DeviceInfo, DeviceInfo> m_devices;
 };
 
 int main()

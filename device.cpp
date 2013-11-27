@@ -1,99 +1,54 @@
-#include <uv++.h>
 #include <iostream>
-
-#include "daemon.h"
+#include "generic-device.h"
 #include "config.h"
 
 using namespace std;
 using namespace Uv;
 
-class Device: public Daemon,
-                public Udp::RecvHandler,
-                public Udp::SendHandler,
-                public Stream::InConnectHandler
+class Device: public GenericDevice,
+              private Udp::RecvHandler,
+              private Stream::InConnectHandler,
+              private Timer::TimeoutHandler
 {
 public:
-    Device(): m_pUdp(NULL), m_pTcp(NULL)
+    Device(): m_pinging(false)
     {
     }
 
     virtual ~Device()
     {
-        if(m_pUdp) {
-            m_pUdp->Unref();
-        }
-
-        if(m_pTcp) {
-            m_pTcp->Unref();
-        }
     }
 
 private:
-    void LookupDevices()
-    {
-        Buffer *buf = new Buffer(REQ_REG_LOOKUP);
-        m_pUdp->Send(*buf, Ip4Address(REG_UDP_MCAST_GROUP, REG_UDP_PORT));
-        buf->Unref();
-    }
-
     virtual int DoInit()
     {
-        m_pUdp = Udp::New();
-        if(! m_pUdp) {
-            return UV_ENOMEM;
-        }
-
-        int result = m_pUdp->Bind(Ip4Address("0.0.0.0", DEV_UDP_PORT));
+        int result = GenericDevice::DoInit();
         if(result) {
-            goto unrefUdp;
+            goto end;
         }
 
-        result = m_pUdp->RecvStart(*this);
+        result = JoinMulticastGroup(Ip4Address("0.0.0.0", DEV_UDP_PORT),
+                                    DEV_UDP_MCAST_GROUP,
+                                    UDP_MCAST_TTL,
+                                    *this);
         if(result) {
-            goto unrefUdp;
+            goto end;
         }
 
-        result = m_pUdp->SetMulticastTtl(UDP_MCAST_TTL);
+        result = Listen(Ip4Address("0.0.0.0", DEV_TCP_PORT), *this);
         if(result) {
-            goto unrefUdp;
+            goto leaveMulticastGroup;
         }
 
-        result = m_pUdp->JoinMulticastGroup(DEV_UDP_MCAST_GROUP,
-                                            "0.0.0.0");
-        if(result) {
-            goto unrefUdp;
+        result = LookupRegistry();
+        if(! result) {
+            goto end;
         }
 
-        m_pTcp = Tcp::New();
-        if(! m_pTcp) {
-            goto stopUdpRecv;
-        }
-
-        result = m_pTcp->Bind(Ip4Address("0.0.0.0", DEV_TCP_PORT));
-        if(result) {
-            goto unrefTcp;
-        }
-
-        result = m_pTcp->Listen(*this);
-        if(result) {
-            goto unrefTcp;
-        }
-
-        MonitorHandle(m_pUdp);
-        MonitorHandle(m_pTcp);
-
-        LookupDevices();
-
-        goto end;
-
-    unrefTcp:
-        m_pTcp->Unref();
-        m_pTcp = NULL;
-    stopUdpRecv:
-        m_pUdp->RecvStop();
-    unrefUdp:
-        m_pUdp->Unref();
-        m_pUdp = NULL;
+    stopListen:
+        ListenStop();
+    leaveMulticastGroup:
+        LeaveMulticastGroup();
     end:
         return result;
     }
@@ -112,6 +67,14 @@ private:
                         /* [in] */ const Address &addr)
     {
         cout << "found registry @" << addr.ToString() << endl;
+
+        m_regAddr = addr;
+
+        StopTimer();
+        int result = StartTimer(KEEPALIVE_INTERVAL - MS(1), *this);
+        if(result) {
+            cout << "failed to start keep alive timer";
+        }
     }
 
     void OnDevLookupReq(/* [in] */ Udp *source,
@@ -131,6 +94,15 @@ private:
         buf->Unref();
     }
 
+    void OnPingAck(/* [in] */ Udp *source,
+                /* [in] */ Buffer *buf,
+                /* [in] */ const Address &addr)
+    {
+        cout << "Ping got ack" << endl;
+
+        m_pinging = false;
+    }
+
     void OnRecv(/* [in] */ Udp *source,
                 /* [in] */ Buffer *buf,
                 /* [in] */ const Address &addr,
@@ -147,16 +119,35 @@ private:
         else if(! strncmp(ACK_REG_LOOKUP, *buf, STRLEN(ACK_REG_LOOKUP))) {
             OnRegLookupAck(source, buf, addr);
         }
+        else if(! strncmp(ACK_PING, *buf, STRLEN(ACK_PING))) {
+            OnPingAck(source, buf, addr);
+        }
     }
 
-    void OnSend(/* [in] */ Udp *source, /* [in] */ int status)
+    void OnTimeout(Timer *source, int status)
     {
+        if(m_pinging) {
+            cout << "registry @" << m_regAddr.ToString() << " down" << endl;
+            StopTimer();
+
+            m_pinging = false;
+        }
+        else {
+            cout << "Ping" << endl;
+            if(PingRegistry(m_regAddr)) {
+                cout << "failed to ping registry" << endl;
+                return;
+            }
+
+            m_pinging = true;
+        }
+
     }
 
 private:
-    Udp *m_pUdp;
+    Address m_regAddr;
 
-    Tcp *m_pTcp;
+    bool m_pinging;
 };
 
 int main()
