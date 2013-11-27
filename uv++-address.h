@@ -27,7 +27,7 @@ namespace Uv
         };
 
     public:
-        Address(): m_pStr()
+        Address(): m_pStr(NULL)
         {
             m_pStr = new char[ADDR_MAXLEN];
             m_peer.base.sa_family = Type_Unknown;
@@ -104,14 +104,14 @@ namespace Uv
             return (sockaddr *) &m_peer;
         }
 
-        Address & operator =(const Address &addr)
+        Address & operator =(const Address &other)
         {
-            Set((sockaddr *) &addr.m_peer);
+            Set((sockaddr *) &other.m_peer);
 
             return *this;
         }
 
-        static bool Less(const Address &addr1, const Address &addr2);
+        bool operator < (const Address &other) const;
 
     private:
         void SetType(sa_family_t type)

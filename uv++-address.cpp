@@ -60,27 +60,27 @@ namespace Uv
         return m_pStr;
     }
 
-    bool Address::Less(const Address &addr1, const Address &addr2)
+    bool Address::operator < (const Address &other) const
     {
-        if(&addr1 == &addr2) {
+        if(this == &other) {
             return false;
         }
 
-        if(addr1.GetType() != addr2.GetType()) {
-            if(Type_Ip4 == addr1.GetType()) {
+        if(GetType() != other.GetType()) {
+            if(Type_Ip4 == GetType()) {
                 return true;
             }
             return false;
         }
 
-        if(Type_Ip4 == addr1.GetType()) {
-            return -1 == memcmp(&addr1.m_peer.ip4,
-                                &addr2.m_peer.ip4,
+        if(Type_Ip4 == GetType()) {
+            return -1 == memcmp(&m_peer.ip4,
+                                &other.m_peer.ip4,
                                 sizeof(sockaddr_in));
         }
 
-        return -1 == memcmp(&addr1.m_peer.ip6,
-                            &addr2.m_peer.ip6,
-                            sizeof(sockaddr_in));
+        return -1 == memcmp(&m_peer.ip6,
+                            &other.m_peer.ip6,
+                            sizeof(sockaddr_in6));
     }
 }
