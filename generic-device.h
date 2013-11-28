@@ -140,10 +140,10 @@ protected:
             goto stopRecv;
         }
 
-        //result = m_pUdp->SetMulticastLoop(false);
-        //if(result) {
-            //goto stopRecv;
-        //}
+        result = m_pUdp->SetMulticastLoop(false);
+        if(result) {
+            goto stopRecv;
+        }
 
         result = m_pUdp->JoinMulticastGroup(multicastGroup, "0.0.0.0");
         if(result) {
