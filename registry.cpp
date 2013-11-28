@@ -32,8 +32,6 @@ public:
 
     void Ping(uint64_t now)
     {
-        assert(now > m_timestamp);
-
         m_timestamp = now;
     }
 
