@@ -129,7 +129,7 @@ private:
     void OnTimeout(Timer *source, int status)
     {
         if(m_pinging) {
-            cout << "registry @" << m_regAddr.ToString() << " down" << endl;
+            cout << "registry down" << endl;
             StopTimer();
 
             m_pinging = false;
