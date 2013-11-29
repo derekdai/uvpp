@@ -5,24 +5,18 @@ project(test-uv)
 add_definitions(-Wall)
 
 add_library(uv++ SHARED
-            uv++-loop
-            uv++-handle
-            uv++-timer
-            uv++-signal
-            uv++-address
-            uv++-buffer
-            uv++-socket
-            uv++-stream
-            uv++-tcp
-            uv++-udp
+            src/uv++-loop
+            src/uv++-handle
+            src/uv++-timer
+            src/uv++-signal
+            src/uv++-address
+            src/v++-buffer
+            src/v++-socket
+            src/v++-stream
+            src/v++-tcp
+            src/v++-udp
 )
 target_link_libraries(uv++ uv)
 
-add_executable(test test)
+add_executable(test src/test)
 target_link_libraries(test uv++)
-
-#add_executable(ping ping)
-#target_link_libraries(ping uv++)
-
-#add_executable(pong pong)
-#target_link_libraries(pong uv++)
