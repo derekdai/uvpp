@@ -20,7 +20,11 @@ namespace Uv {
 
     void Loop::Free()
     {
-        assert(! s_pLoop || ! s_pLoop->IsRunning());
+        if(! s_pLoop) {
+            return;
+        }
+
+        assert(! s_pLoop->IsRunning());
 
         delete s_pLoop;
         s_pLoop = NULL;

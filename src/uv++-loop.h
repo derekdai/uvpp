@@ -61,7 +61,6 @@ namespace Uv
         ~Loop()
         {
             uv_loop_delete(m_pPeer);
-            s_pLoop = NULL;
         }
 
         static Loop & FromPeer(uv_loop_t *peer)
