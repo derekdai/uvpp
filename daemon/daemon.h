@@ -37,7 +37,10 @@ public:
 
     int Run()
     {
-        return Loop::Run();
+        int result = Loop::Run();
+        Loop::Free();
+
+        return result;
     }
 
     void Stop()
