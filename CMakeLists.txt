@@ -25,11 +25,11 @@ target_link_libraries(test uv++)
 include_directories(${CMAKE_SOURCE_DIR})
 
 add_executable(device
-               device
-               daemon)
+               daemon/device
+               daemon/daemon)
 target_link_libraries(device uv++)
 
 add_executable(registry
-               registry
-               daemon)
+               daemon/registry
+               daemon/daemon)
 target_link_libraries(registry uv++)
