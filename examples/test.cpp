@@ -9,7 +9,7 @@ class MyTimeoutHandler: public Timer::TimeoutHandler,
                         public Handle::WeakRef
 {
 public:
-    MyTimeoutHandler(): count(5) {}
+    MyTimeoutHandler(): count(2) {}
 
     void AddHandle(Handle *handle)
     {
@@ -24,9 +24,7 @@ public:
         for(; iter != end; ++iter) {
             cout << "MyTimeoutHandler::CloseHandles: " << (*iter)->GetTypeName()
                  << "(" << *iter << ")" << endl;
-            (*iter)->SetWeakRef(NULL);
             (*iter)->Close();
-            handles.erase(iter);
             cout << "MyTimeoutHandler::handles.size = " << handles.size() << endl;
         }
 
@@ -44,8 +42,7 @@ private:
         cout << "MyTimeoutHandler: " << count << endl;
         count --;
         if(0 >= count) {
-            source->Stop();
-            CloseHandles();
+            Loop::Get().Stop();
         }
     }
 
@@ -67,12 +64,15 @@ private:
     set<Handle *> handles;
 };
 
-MyTimeoutHandler timeoutHandler;
-
 class Server: public Stream::InConnectHandler,
                      Stream::RecvHandler,
                      Stream::SendHandler
 {
+public:
+    Server(MyTimeoutHandler &timeoutHandler): timeoutHandler(timeoutHandler)
+    {
+    }
+
 private:
     virtual void OnConnect(Stream *server,
                            Stream *conn,
@@ -102,6 +102,9 @@ private:
 
         cout << "Disconnected (" << conn << ")" << endl;
     }
+
+private:
+    MyTimeoutHandler &timeoutHandler;
 };
 
 class Client: public Tcp::OutConnectHandler,
@@ -201,64 +204,68 @@ private:
 int main()
 
 {
-    SignalHandler signalHandler;
-    Signal *signal = Signal::New();
-    timeoutHandler.AddHandle(signal);
-    assert(! signal->Start(SIGINT, signalHandler));
-    signal->Unref();
+    {
+        MyTimeoutHandler timeoutHandler;
 
-    signal = Signal::New();
-    timeoutHandler.AddHandle(signal);
-    assert(! signal->Start(SIGTERM, signalHandler));
-    signal->Unref();
+        SignalHandler signalHandler;
+        Signal *signal = Signal::New();
+        timeoutHandler.AddHandle(signal);
+        assert(! signal->Start(SIGINT, signalHandler));
+        signal->Unref();
 
-    Server serverEventHandler;
-    Tcp *server = Tcp::New();
-    timeoutHandler.AddHandle(server);
-    assert(! server->Bind(Ip4Address("0.0.0.0", 1234)));
-    assert(! server->Listen(serverEventHandler));
-    server->Unref();
+        signal = Signal::New();
+        timeoutHandler.AddHandle(signal);
+        assert(! signal->Start(SIGTERM, signalHandler));
+        signal->Unref();
 
-    Client clientEventHandler;
-    Tcp *client = Tcp::New();
-    timeoutHandler.AddHandle(client);
-    assert(! client->Connect(Ip4Address("127.0.0.1", 1234), &clientEventHandler));
-    client->Unref();
+        Server serverEventHandler(timeoutHandler);
+        Tcp *server = Tcp::New();
+        timeoutHandler.AddHandle(server);
+        assert(! server->Bind(Ip4Address("0.0.0.0", 1234)));
+        assert(! server->Listen(serverEventHandler));
+        server->Unref();
 
-    PingPeer peer1("Peer1");
-    Udp *endPoint1 = Udp::New();
-    assert(endPoint1);
-    timeoutHandler.AddHandle(endPoint1);
-    assert(! endPoint1->Bind(Ip4Address("0.0.0.0", 1357)));
-    assert(! endPoint1->RecvStart(peer1));
+        Client clientEventHandler;
+        Tcp *client = Tcp::New();
+        timeoutHandler.AddHandle(client);
+        assert(! client->Connect(Ip4Address("127.0.0.1", 1234), &clientEventHandler));
+        client->Unref();
 
-    PingPeer peer2("Peer2");
-    Udp *endPoint2 = Udp::New();
-    assert(endPoint2);
-    timeoutHandler.AddHandle(endPoint2);
-    assert(! endPoint2->Bind(Ip4Address("0.0.0.0", 2468)));
-    assert(! endPoint2->RecvStart(peer2));
+        PingPeer peer1("Peer1");
+        Udp *endPoint1 = Udp::New();
+        assert(endPoint1);
+        timeoutHandler.AddHandle(endPoint1);
+        assert(! endPoint1->Bind(Ip4Address("0.0.0.0", 1357)));
+        assert(! endPoint1->RecvStart(peer1));
 
-    Buffer *buf = new Buffer("Hello");
-    assert(! endPoint1->Send(*buf, Ip4Address("127.0.0.1", 2468)));
-    buf->Unref();
+        PingPeer peer2("Peer2");
+        Udp *endPoint2 = Udp::New();
+        assert(endPoint2);
+        timeoutHandler.AddHandle(endPoint2);
+        assert(! endPoint2->Bind(Ip4Address("0.0.0.0", 2468)));
+        assert(! endPoint2->RecvStart(peer2));
 
-    buf = new Buffer("World");
-    assert(! endPoint2->Send(*buf, Ip4Address("127.0.0.1", 1357)));
-    buf->Unref();
+        Buffer *buf = new Buffer("Hello");
+        assert(! endPoint1->Send(*buf, Ip4Address("127.0.0.1", 2468)));
+        buf->Unref();
 
-    endPoint1->Unref();
-    endPoint2->Unref();
+        buf = new Buffer("World");
+        assert(! endPoint2->Send(*buf, Ip4Address("127.0.0.1", 1357)));
+        buf->Unref();
 
-    Timer *timer = Timer::New();
-    timeoutHandler.AddHandle(timer);
-    assert(timer);
-    assert(! timer->Start(1000, timeoutHandler));
-    timer->Unref();
+        endPoint1->Unref();
+        endPoint2->Unref();
 
-    Loop::Run();
-    timeoutHandler.CloseHandles();
-    Loop::Free();
+        Timer *timer = Timer::New();
+        timeoutHandler.AddHandle(timer);
+        assert(timer);
+        assert(! timer->Start(1000, timeoutHandler));
+        timer->Unref();
+
+        Loop::Run();
+        timeoutHandler.CloseHandles();
+        Loop::Free();
+    }
 
     cout << Handle::count << " handle alive" << endl;
 
