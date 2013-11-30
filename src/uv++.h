@@ -1,6 +1,9 @@
 #ifndef __UVPP_H_
 #define __UVPP_H_
 
+#include <iostream>
+using namespace std;
+
 #include <uv.h>
 #include "uv++-loop.h"
 #include "uv++-handle.h"

@@ -4,9 +4,6 @@
 #include <cassert>
 #include <cstdlib>
 
-#include <iostream>
-using namespace std;
-
 namespace Uv
 {
     class Handle
